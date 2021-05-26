@@ -2,14 +2,14 @@
 
 Un `allocateur de mémoire physique` est un algorithme d'allocation 'basique' qui est généralement utilisé par le kernel pour allouer et libérer des pages.
 
-> Note : tout au long de ce document, le terme `page` est utilisé comme zone de mémoire qui à pour taille 4096 byte 
+> Note : tout au long de ce document, le terme `page` est utilisé comme zone de mémoire qui à pour taille 4096 octets (= 4KiB) 
 > Cette taille peut changer mais pour l'instant il est mieux d'utiliser la même taille de page entre le paging et l'allocateur de mémoire physique
 
 Il doit pouvoir : 
 
 - Allouer une/plusieurs page libre
 - Libérer une page allouée
-- Gérer qu'elle zone de la mémoire est utilisable ou non
+- Gérer quelle zone de la mémoire est utilisable ou non
 
 Voici un code C basique présentant les fonctions de base à implémenter pour un allocateur de mémoire physique:
 ```c
@@ -40,16 +40,15 @@ static inline uint64_t get_bitmap_bit_index(uint64_t page_addr){
 
 La bitmap a l'avantage d'être petite. Par exemple, pour une mémoire de 4Go on a : 
 
-`((2^32 / 4096) / 8)` = 131 072 byte soit 
-une bitmap de 128 kb 
+`((2^32 / 4096) / 8)` = 131 072 octets soit une bitmap de 128 KiB.
 
 Il faut aussi savoir que la bitmap à l'avantage d'être très rapide, on peut facilement libérer/allouer une page.
 
 ## Changer l'état d'une page dans la bitmap 
 
-Pour cette partie vous devez placer une variable temporairement nulle... Cette variable est la bitmap qui serra initialisée plus tard, mais vous devez tout d'abord savoir comment changer l'état d'une page.
+Notre bitmap sera un tableau d'``uint8_t`` qui sera initialisé plus tard. Vous devez tout d'abord savoir comment changer l'état d'une page.
 
-ici la variable est : 
+Voici pour l'instant notre bitmap: 
 
 ```c
 uint8_t* bitmap = NULL;
@@ -81,7 +80,7 @@ static inline void bitmap_clear_bit(uint64_t page_addr)
 
 L'allocateur de mémoire physique doit être initialisé le plus tôt possible, vous devez avoir au moins la carte de la mémoire (quelle zone est libre et quelle zone ne l'est pas) généralement fournie par le bootloader.
 
-cependant vous devez calculer avant la future taille de la bitmap, générallement la taille de la mémoire est la fin de la dernière entrée de la carte de la mémoire.
+Cependant vous devez calculer avant la future taille de la bitmap, généralement la taille de la mémoire est la fin de la dernière entrée de la carte de la mémoire.
 
 ```c 
 uint64_t memory_end = memory_map[memory_map_size].end;
@@ -135,8 +134,7 @@ for(uint64_t i = bitmap_start; i <= bitmap_end; i+= PAGE_SIZE){
 
 ## L'allocation, la recherche et la libération de pages
 
-Une fois votre bitmap initialisée vous pouvez mettre une page comme libre ou utilisée. Ainsi, vous pouvez commencer à implémenter des fonction d'allocation et de libération de pages.
-Cependant, vous devez commencer par vérifier si une page est utilisée ou libérée (ou si le bit d'une page est à 0 où à 1) :
+Une fois votre bitmap initialisée vous devez définir la disponibilité de chaque page. Ainsi, vous pourrez commencer à implémenter des fonction d'allocation et de libération de pages.
 
 ```c
 static inline bool bitmap_is_bit_set(uint64_t page_addr){
@@ -148,12 +146,12 @@ static inline bool bitmap_is_bit_set(uint64_t page_addr){
 ```
 ### L'allocation de page
 
-Une fonction d'allocation de page doit avoir comme argument le nombre de pages allouées et doit retourner des pages qui seront marquées comme utilisées.
+Une fonction d'allocation de page doit avoir comme argument le nombre de pages demandées et doit retourner des pages qui seront marquées comme utilisées.
 
 Pour commencer, vous devez mettre en place une fonction qui cherche et trouve de nouvelles pages: 
 
 ```c
-// note ici c'est la fonction brut, il y a plusieurs optimizations possiblent qui serront abordés plus tard 
+// note ici c'est la fonction brute, il y a plusieurs optimizations possiblent qui seront abordés plus tard 
 uint64_t find_free_pages(uint64_t count){
     uint64_t free_count = 0; // le nombre de pages libres de suite
     for(int i = 0; i < (mem_size/PAGE_SIZE); i++){
@@ -170,9 +168,9 @@ uint64_t find_free_pages(uint64_t count){
 }
 ```
 
-`find_free_page` donne donc `count` pages libre
+`find_free_page` donne donc `count` pages libre.
 
-Après avoir trouvé les pages, vous devrez les mettre comme utilisées:
+Après avoir trouvé les pages, vous devrez les marquer comme utilisées:
 
 ```c
 void* alloc_page(uint64_t count){
@@ -191,7 +189,7 @@ Vous avez désormais un allocateur de mémoire physique fonctionnel !
 
 Après avoir alloué des pages vous devez pouvoir les libérer.
 
-Le fonctionnement est plus simple que l'allocation, vous devez juste mettres les bits des pages à 0. 
+Le fonctionnement est plus simple que l'allocation, vous devez juste mettres les bits des pages à 0.
 
 **Note** : Ici il n'y a pas de vérification d'erreur car c'est un exemple.
 
@@ -209,7 +207,7 @@ Cette fonction met juste les bit de la bitmap à 0.
 ### les optimisations
 
 L'allocation de pages comme ici est très lente, à chaque fois on revient à 0 pour chercher une page et cela peut ralentir énormément le système. 
-On peut donc mettre en place plusieurs optimizations: 
+On peut donc mettre en place plusieurs optimisations: 
 
 Une optimisation basique serait de créer une variable last_free_page qui donne la dernière page libre à la place de toujours revenir à la page 0 pour en chercher une nouvelle. Cela améliore largement les performances et est relativement simple à mettre en place:
 
@@ -233,7 +231,7 @@ uint64_t find_free_pages(uint64_t count){
 }
 ```
 
-Cependant, si on ne trouve pas de page libre à partir de la dernière page libre, il peut en avoir avant. Il faut donc réésayer en mettant le nombre de page libre à zéro.
+Cependant, si on ne trouve pas de page libre à partir de la dernière page libre, il peut en avoir avant. Il faut donc réessayer en mettant le nombre de page libre à zéro.
 
 ```c
 // à la fin de la fonction find_free_pages()
@@ -252,10 +250,9 @@ last_free_page = page_addr;
 ```
 
 ---
-une autre optimisation serait dans find_free_page; on peut utiliser la capacité du processeur à faire des vérification avec des nombres 64, 32, 16 et 8 bits pour que cela soit plus rapide. En sachant que dans une bitmap, quand il y a une entrée de la table totallement pleine, tous les bits sont à 1 donc ils sont donc à `0b11111111` = `0xff`
+une autre optimisation serait dans find_free_page; on peut utiliser la capacité du processeur à faire des vérification avec des nombres 64, 32, 16 et 8 bits pour que cela soit plus rapide. En sachant que dans une bitmap, quand il y a une entrée de la table totalement pleine, tous les bits sont à 1 donc ils sont donc à `0b11111111` = `0xff`
 
-On peut donc rajouter
-(sans le code pour last_free_page pour que cela soit plus compréhensible)
+On peut donc rajouter (sans le code pour last_free_page pour que cela soit plus compréhensible)
 
 ```c
 uint64_t find_free_pages(uint64_t count){

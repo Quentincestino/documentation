@@ -40,7 +40,7 @@ lock bts dword [rdi], 0
 
 ### Code assembleur
 
-pour verrouiller on doit implémenter une fonction qui vérifie le vérrou,
+pour verrouiller on doit implémenter une fonction qui vérifie le verrou,
 si il est à 1, alors le verrou est bloqué, on doit attendre.
 si il est à 0, alors le verrou est débloqué, c'est notre tour.
 
@@ -79,11 +79,11 @@ unlock:
     ret
 ```
 
-il réinitialise juste le bit contenu dans `rdi`
+Il réinitialise juste le bit contenu dans `rdi`
 
 Maintenant on doit rajouter un temps mort
 
-parfois si un CPU a crash ou a oublié de déverrouiller un verrou il peut arriver que les autres CPU soient bloqués? Il est donc recommandé de rajouter un temps mort pour signaler l'erreur.
+Parfois si un CPU a crash ou a oublié de déverrouiller un verrou il peut arriver que les autres CPU soient bloqués. Il est donc recommandé de rajouter un temps mort pour signaler l'erreur.
 
 ```x86asm
 locker:
@@ -115,16 +115,15 @@ On peut utiliser une fonction C/C++ dans timed_out
 Dans le code C on peut se permettre de rajouter des informations au verrou. On peut rajouter le fichier, la ligne, le cpu etc...
 cela permet de mieux débugger si il y a une erreur dans le code
 
+Les fonction en C doivent être utilisées comme ceci :
 
-Les fonction en c doivent être utilisées comme ceci :
-
-```cpp
+```c
 void lock(volatile uint32_t* lock);
 void unlock(volatile uint32_t* lock);
 ```
 Si on veut rajouter plus d'informations au lock on doit faire une structure contenant un membre 32bit
 
-```cpp
+```c
 struct verrou{
     uint32_t data; // ne doit pas être changé
     const char* fichier;
@@ -132,11 +131,11 @@ struct verrou{
     uint64_t cpu;
 }__attribute__(packed);
 ```
-Vous devez maintenant rajouter des fonction verrouiller et déverrouiller qui appelleront respectivement lock et unlock
+Vous devez maintenant rajouter des fonction verrouiller et déverrouiller qui appelleront respectivement lock et unlock.
 
 *note : si vous voulez avoir la ligne/le fichier, vous devez utiliser des #define et non des fonction*
 
-```cpp
+```c
 void verrouiller(verrou* v){
 
     // code pour remplir les données du vérrou
@@ -148,17 +147,17 @@ void deverrouiller(verrou* v){
 }
 ```
 
-Maintenant vous devez implementer la fonction qui serra appelé dans `timed_out`
+Maintenant vous devez implémenter la fonction qui serra appelé dans `timed_out`
 
-```cpp
+```c
 void crocheter_le_verrou(verrou* v){
     // vous pouvez log des informations importantes ici
     
 }
 ```
-maintenant vous pouvez choisir entre 2 possibilité :
+maintenant vous pouvez choisir entre deux possibilités:
 
-* dans la fonction crocheter_le_verrou vous continuez en attandant jusqu'à ce que le verrou soit déverrouillé
+* dans la fonction crocheter_le_verrou vous continuez en attendant jusqu'à ce que le verrou soit déverrouillé
 
 * dans la fonction crocheter_le_verrou vous devez mettre le membre `data` du vérou v à 0, ce qui forcera le verrou à être déverrouiller
 
@@ -181,5 +180,3 @@ void ata_read(/* ... */)
 Le code sera désormais exécuté seulement sur 1 cpu à la fois !
 
 Il est important d'utiliser les verrou quand il le faut, dans un allocateur de frame, le changement de contexte, l'utilisation d'appareils...
-
-

@@ -1,18 +1,18 @@
 # Interrupt Descriptor Table
 
-La table de description des interruptions est une table qui permet au cpu 
-de pouvoir savoir ou aller (jump) quand il y a une interruption.
+La table de description des interruptions est une table qui nous permet de faire appeler au cpu une fonction pour chaque type d'interruption.
 
-Il y a deux structures utilisées (en 64bit) : 
+L'IDT est composée de trois structures (en 64 bits):
 
-- La table d'entrée d'interruptions
-- L'entrée de la table d'interruptions 
+- Le `pointeur de la table d'interruptions`
+- La `table de description d'interruptions`, qui est une liste d'entrées. C'est ce que l'on appelle plus communément IDT.
+- L' `entrée d'interruption`, qui est une entrée de la table d'interruptions.
 
 ## Table d'entrée
 
-La table d'entrée contient une adresse qui situe une table d'entrée d'IDT et la taille de la table (en mémoire).
+Le pointeur de la table de description d'interruptions contient une adresse qui situe une IDT et la taille de la table (en mémoire).
 
-pour la table d'entrée la structure est comme ceci :
+pour le pointeur de l'IDT, la structure est comme ceci :
 
 |nom                    |taille     |
 |-----------------------|-----------|
@@ -22,14 +22,14 @@ pour la table d'entrée la structure est comme ceci :
 la table d'entrée peut être définie comme ceci:
 ```c
 IDT_entry_count = 64; 
-IDT_Entry_t ent[IDT_entry_count];
-IDT_table.addr = (uint64_t)ent;
+IDT_Entry_t IDT[IDT_entry_count];
+IDT_table.addr = (uint64_t)IDT;
 IDT_table.size = sizeof(IDT_Entry_t) * IDT_entry_count;
 ```
 
-## entrée d'IDT
+## Entrée d'interruption
 
-l'entrée d'une IDT doit être structurée comme ceci :
+Une entrée d'IDT doit être structurée comme ceci :
 
 |nom                        |taille     |
 |---------------------------|-----------|
@@ -38,13 +38,12 @@ l'entrée d'une IDT doit être structurée comme ceci :
 |numéro d'interruption      | 8 bit     |
 |attributs                  | 8 bit     |
 |offset (16-32)             | 16 bit    |
-|bits spécifiques au 64bit  | //        |
 |offset (32-64)             | 32 bit    |
 |zéro                       | 32 bit    |
 
 le `segment de code` étant le segment de code utilisé pendant l'interruption.
 
-l'`offset` est l'addresse où le CPU va jump si il y a une interruption. 
+l'`offset` est l'addresse où le CPU va jump si il y a une interruption. Cette addresse est généralement une fonction, qui sera appelée lors de l'interruption correspondante.
 
 ### Les attributs 
 l'attribut d'une entrée d'une IDT est formée comme ceci : 
@@ -63,7 +62,7 @@ il est utilisé pour éviter à ce que une application utilisatrice puisse appel
 
 ### Types d'interruptions
 
-les types d'interruption sont les mêmes que cela soit en 64bit ou en 32bit. 
+les types d'interruption sont les mêmes que cela soit en 64 bits ou en 32 bits. 
 
 |valeur                 |signification                          |
 |-----------------------|---------------------------------------|
@@ -72,7 +71,7 @@ les types d'interruption sont les mêmes que cela soit en 64bit ou en 32bit.
 |0b1110 (14)            | porte d'interruption  32bit           |
 |0b1111 (15)            | trappe d'interruption 32bit           |
 
-La différence entre une `trappe`(aka trap) et une `porte` (aka gate) est que la gate désactive `IF`, ce qui veut dire que vous devrez réactiver les interruptions à la fin de l'ISR.
+La différence entre une `trappe`(aka trap) et une `porte` (aka gate) est que la porte désactive `IF`, ce qui veut dire que vous devrez réactiver les interruptions à la fin de l'ISR.
 
-la trappe ne désactive pas `IF` donc vous pouvez désactiver / réactiver vous même dans l'isr les interrupts.
+la trappe ne désactive pas `IF` donc vous pouvez désactiver / réactiver vous même dans l'ISR les interruptions.
 

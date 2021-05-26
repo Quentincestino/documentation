@@ -37,11 +37,11 @@ Il est utile de savoir qu'il faudra implémenter les interruptions [APIC](../../
 
 ## Obtenir le numéro du coeur actuel
 
-Obtenir le numero du coeur actuel est très important pour plus tard, il permet d'identifier le CPU sur lequel on travaille.
+Obtenir le numéro du coeur actuel est très important pour plus tard, il permet d'identifier le CPU sur lequel on travaille.
 
 Pour obtenir l'identifiant du CPU actuel on doit utiliser l'[APIC](../../périphériques/APIC/). Le numéro du CPU est contenu dans le registre 20 de l'APIC, et il est situé du 24ème au 32ème bit, il faut donc décaler à droite la valeur lue de 24 bits. 
 
-```cpp
+```c
 #define LAPIC_REGISTER 20
 uint32_t get_current_processor_id()
 {
@@ -111,7 +111,7 @@ sidt [0x590] ; stockage de l'IDT
 
 Pour initialiser la pile on doit stocker une adresse valide à l'adresse `0x570`:
 
-```cpp
+```c
 POKE(570) = stack_address + stack_size;
 ```
 
